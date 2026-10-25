@@ -1,0 +1,67 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+
+  @@map("order_status")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement()) @map("customer_id")
+  name      String
+  email     String   @unique
+  country   String
+  createdAt DateTime @default(now()) @map("created_at")
+  orders    Order[]
+
+  @@map("customers")
+}
+
+model Product {
+  id            Int         @id @default(autoincrement()) @map("product_id")
+  sku           String      @unique
+  name          String
+  price         Decimal     @db.Decimal(10, 2)
+  stockQuantity Int         @map("stock_quantity")
+  reorderLevel  Int         @default(10) @map("reorder_level")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  orderItems    OrderItem[]
+
+  @@index([sku])
+  @@map("products")
+}
+
+model Order {
+  id         Int         @id @default(autoincrement()) @map("order_id")
+  customerId Int         @map("customer_id")
+  status     OrderStatus @default(PENDING)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement()) @map("item_id")
+  orderId   Int     @map("order_id")
+  productId Int     @map("product_id")
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("order_items")
+}
