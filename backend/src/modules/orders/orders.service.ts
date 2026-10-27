@@ -5,8 +5,9 @@ import {
 } from '@nestjs/common';
 
 import { CreateOrderDto } from './dto/create-order.dto.js';
-import {PrismaService} from "../../prisma.service.js";
-import {OrderStatus} from "../../generated/prisma/enums.js";
+import {PrismaService} from "../../prisma/prisma.service.js";
+import {OrderStatus} from "@prisma/client";
+
 
 @Injectable()
 export class OrdersService {
