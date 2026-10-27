@@ -2,12 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import {ValidationPipe} from "@nestjs/common";
 
+const VITE_PORT = 5173
+const APP_PORT = 3000
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS for the React frontend (Vite defaults to port 5173)
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: `http://localhost:${VITE_PORT}`,
   });
 
   // Enforce strict DTO payload validation across all controllers
@@ -19,7 +22,7 @@ async function bootstrap() {
       }),
   );
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? APP_PORT
   await app.listen(port);
   console.log(`StockPulse API running on http://localhost:${port}`);
 }
