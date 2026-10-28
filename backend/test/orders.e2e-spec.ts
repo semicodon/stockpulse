@@ -12,6 +12,11 @@ describe('Orders & Inventory Fulfillment (e2e)', () => {
 
     beforeAll(async () => {
         try {
+            // Respect CI environment variable if set; otherwise default to local Docker db-test on 127.0.0.1:5433
+            process.env.DATABASE_URL =
+              process.env.DATABASE_URL ||
+              'postgresql://postgres:postgrespassword@127.0.0.1:5433/stockpulse_test?schema=public';
+
             const moduleFixture: TestingModule = await Test.createTestingModule({
                 imports: [AppModule],
             }).compile();
