@@ -1,34 +1,44 @@
 import React, { useState } from 'react';
-import type {CreateOrderPayload, Product} from "../api/fulfillmentClient.ts";
-
+import type {
+  Customer,
+  CreateOrderPayload,
+  Product,
+} from '../api/fulfillmentClient';
 
 interface OrderFormModalProps {
+  customers: Customer[];
   products: Product[];
   onSubmitOrder: (payload: CreateOrderPayload) => void;
   isSubmitting: boolean;
   errorMsg: string | null;
 }
 
-const SEEDED_CUSTOMERS = [
-  { id: 1, name: 'Alice Johnson (USA) — #1' },
-  { id: 2, name: 'Bob Smith (Canada) — #2' },
-  { id: 3, name: 'Diana Prince (UK) — #3' },
-];
-
 export const OrderFormModal: React.FC<OrderFormModalProps> = ({
+                                                                customers,
                                                                 products,
                                                                 onSubmitOrder,
                                                                 isSubmitting,
                                                                 errorMsg,
                                                               }) => {
-  const [customerId, setCustomerId] = useState<number>(1);
-  const [items, setItems] = useState<Array<{ productId: number; quantity: number }>>([
-    { productId: products[0]?.id ?? 1, quantity: 1 },
+  const [customerId, setCustomerId] = useState<number>(
+    customers[0]?.id ?? 1,
+  );
+  const [items, setItems] = useState<
+    Array<{ productId: number; quantity: number }>
+  >([
+    {
+      productId: products[0]?.id ?? 1,
+      quantity: 1,
+    },
   ]);
 
   const handleAddLineItem = () => {
     const defaultProductId = products[0]?.id ?? 1;
     setItems((prev) => [...prev, { productId: defaultProductId, quantity: 1 }]);
+  };
+
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCustomerId(Number(e.target.value));
   };
 
   const handleRemoveLineItem = (index: number) => {
@@ -89,12 +99,12 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({
           </label>
           <select
             value={customerId}
-            onChange={(e) => setCustomerId(Number(e.target.value))}
+            onChange={handleCustomerChange}
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
           >
-            {SEEDED_CUSTOMERS.map((c) => (
+            {customers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.name} ({c.country}) — #{c.id}
               </option>
             ))}
           </select>

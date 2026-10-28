@@ -22,6 +22,11 @@ export function DashboardPage() {
     queryFn: () => fulfillmentClient.getProducts(),
   });
 
+  const customersQuery = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => fulfillmentClient.getCustomers(),
+  });
+
   const refreshAllData = () => {
     queryClient.invalidateQueries({ queryKey: ['operational-summary'] });
     queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -52,7 +57,11 @@ export function DashboardPage() {
     },
   });
 
-  if (summaryQuery.isLoading || productsQuery.isLoading) {
+  if (
+    summaryQuery.isLoading ||
+    productsQuery.isLoading ||
+    customersQuery.isLoading
+  ) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-600">
         Loading StockPulse Fulfillment Console...
@@ -60,7 +69,11 @@ export function DashboardPage() {
     );
   }
 
-  if (summaryQuery.isError || productsQuery.isError) {
+  if (
+    summaryQuery.isError ||
+    productsQuery.isError ||
+    customersQuery.isError
+  ) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-xl mx-auto p-5 bg-red-50 border border-red-200 rounded-xl text-red-800">
@@ -75,6 +88,7 @@ export function DashboardPage() {
 
   const summary = summaryQuery.data!;
   const products = productsQuery.data!;
+  const customers = customersQuery.data!;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -99,6 +113,7 @@ export function DashboardPage() {
 
         {/* 2. Transactional Order Dispatcher */}
         <OrderFormModal
+          customers={customers}
           products={products}
           onSubmitOrder={(payload) => createOrderMutation.mutate(payload)}
           isSubmitting={createOrderMutation.isPending}
