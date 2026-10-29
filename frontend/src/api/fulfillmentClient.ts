@@ -84,6 +84,15 @@ export interface CreateOrderPayload {
   }>;
 }
 
+export interface CreateProductPayload {
+  sku: string;
+  name: string;
+  price: number;
+  stockQuantity: number;
+  reorderLevel?: number;
+}
+
+
 async function handleResponse<T>(res: Response): Promise<T>
 /*
 * Handles HTTP responses by:
@@ -115,6 +124,14 @@ export const fulfillmentClient = {
     return fetch(`${API_BASE}/products`).then((res) =>
       handleResponse<Product[]>(res),
     );
+  },
+
+  createProduct(payload: CreateProductPayload): Promise<Product> {
+    return fetch(`${API_BASE}/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then((res) => handleResponse<Product>(res));
   },
 
   /* Returns list of customers */

@@ -1,16 +1,19 @@
 import React from 'react';
 import type {Product} from "../api/fulfillmentClient.ts";
 
+
 interface InventoryTableProps {
   products: Product[];
   onRestock: (productId: number, newStockQuantity: number) => void;
   isRestocking: boolean;
+  onOpenCreateModal: () => void; // <-- 1. Add this prop
 }
 
 export const InventoryTable: React.FC<InventoryTableProps> = ({
                                                                 products,
                                                                 onRestock,
                                                                 isRestocking,
+                                                                onOpenCreateModal, // <-- 2. Destructure the prop
                                                               }) => {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
@@ -21,6 +24,14 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             Live stock levels and automated reorder threshold monitoring
           </p>
         </div>
+        {/* 3. Add this button to open the Create Product Modal */}
+        <button
+          type="button"
+          onClick={onOpenCreateModal}
+          className="bg-slate-900 text-white text-xs font-medium px-3.5 py-2 rounded-lg hover:bg-slate-800 cursor-pointer"
+        >
+          + New SKU
+        </button>
       </div>
 
       <div className="overflow-x-auto">
