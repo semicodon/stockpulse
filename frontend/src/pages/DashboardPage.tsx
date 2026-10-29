@@ -8,7 +8,7 @@ import {
 import { KpiHeader } from '../components/KpiHeader';
 import { InventoryTable } from '../components/InventoryTable';
 import { OrderFormModal } from '../components/OrderFormModal';
-import {CreateProductModal} from "../components/CreatePrductModal.tsx";
+import {CreateProductModal} from "../components/CreateProductModal.tsx";
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
@@ -155,6 +155,7 @@ export function DashboardPage() {
         {/* 4. Create Product Modal (Resets & Closes ONLY on 201 Created) */}
         <CreateProductModal
           isOpen={isCreateModalOpen}
+          existingProducts={products}
           onClose={() => {
             setProductErrorMsg(null);
             setIsCreateModalOpen(false);
@@ -170,7 +171,6 @@ export function DashboardPage() {
           isSubmitting={createProductMutation.isPending}
           errorMsg={productErrorMsg}
         />
-
         {/* 5. Recent Fulfilled Orders Feed */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200">

@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import type { CreateProductPayload } from '../api/fulfillmentClient';
+import React, {useState} from 'react';
+import type {CreateProductPayload, Product} from '../api/fulfillmentClient';
+
+const GENERAL_PRODUCT_PREFIX = 'GN';
+const FIXED_SKU_PREFIX = 'HW'
 
 interface CreateProductModalProps {
   isOpen: boolean;
   onClose: () => void;
+  existingProducts: Product[]; // <-- 1. Receive loaded products from DashboardPage
   onCreateProduct: (
     payload: CreateProductPayload,
     onSuccessReset: () => void,
@@ -11,22 +15,47 @@ interface CreateProductModalProps {
   isSubmitting: boolean;
   errorMsg: string | null;
 }
+function generateUniqueSku(existingProducts: Product[], nameHint: string): string {
+  const existingSkus = new Set(
+    existingProducts.map((p) => p.sku.toUpperCase()),
+  );
+
+  // Use the first 2 letters of the product name if available (e.g., "Mouse" -> "MO"), otherwise "GN"
+  const cleanPrefix = nameHint
+    .replace(/[^a-zA-Z]/g, '')
+    .substring(0, 2)
+    .toUpperCase() || GENERAL_PRODUCT_PREFIX;
+
+  let candidateSku = '';
+  do {
+    // Generates a 4-character alphanumeric code, e.g., "HW-MO-8F4K"
+    const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+    candidateSku = `${FIXED_SKU_PREFIX}-${cleanPrefix}-${randomCode}`;
+  } while (existingSkus.has(candidateSku));
+
+  return candidateSku;
+}
 
 export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                                                                         isOpen,
                                                                         onClose,
+                                                                        existingProducts,
                                                                         onCreateProduct,
                                                                         isSubmitting,
                                                                         errorMsg,
                                                                       }) => {
-  // Controlled Client UI State for each form input
   const [sku, setSku] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [price, setPrice] = useState<number>(49.99);
   const [stockQuantity, setStockQuantity] = useState<number>(20);
   const [reorderLevel, setReorderLevel] = useState<number>(10);
 
-  // Helper that resets all inputs back to their initial defaults
+  // 2. DERIVED STATE: Check if the typed SKU already exists in our cached catalog
+  const normalizedTypedSku = sku.trim().toUpperCase();
+  const isDuplicateSku =
+    normalizedTypedSku.length > 0 &&
+    existingProducts.some((p) => p.sku.toUpperCase() === normalizedTypedSku);
+
   const resetForm = () => {
     setSku('');
     setName('');
@@ -35,21 +64,29 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setReorderLevel(10);
   };
 
-  // If the modal is closed, render nothing in the DOM
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Block submission immediately on the client if a duplicate SKU was typed
+    if (isDuplicateSku) return;
+
+    // 3. Auto-generate a unique SKU if the user left the SKU input blank
+    const finalSku =
+      normalizedTypedSku.length > 0
+        ? normalizedTypedSku
+        : generateUniqueSku(existingProducts, name);
+
     onCreateProduct(
       {
-        sku: sku.trim().toUpperCase(),
+        sku: finalSku,
         name: name.trim(),
         price: Number(price),
         stockQuantity: Number(stockQuantity),
         reorderLevel: Number(reorderLevel),
       },
-      resetForm, // Passed to DashboardPage so it only runs on 201 Created!
+      resetForm,
     );
   };
 
@@ -62,7 +99,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               Register New Warehouse SKU
             </h2>
             <p className="text-xs text-slate-500">
-              Validated by NestJS CreateProductDto & unique SKU index
+              Leave SKU blank to auto-generate a unique code
             </p>
           </div>
           <button
@@ -77,23 +114,43 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {errorMsg && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg">
-              <span className="font-semibold">Validation / Conflict Error: </span>
+              <span className="font-semibold">Server Error: </span>
               {errorMsg}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
-              SKU Code (Unique)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold uppercase text-slate-500">
+                SKU Code (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setSku(generateUniqueSku(existingProducts, name))
+                }
+                className="text-xs font-medium text-blue-700 hover:text-blue-900 cursor-pointer"
+              >
+                ✨ Generate Random SKU
+              </button>
+            </div>
             <input
               type="text"
-              required
-              placeholder="e.g. HW-MS-01"
+              placeholder="Leave blank to auto-generate (e.g. HW-MO-8F4K)"
               value={sku}
               onChange={(e) => setSku(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono uppercase"
+              className={`w-full border rounded-lg px-3 py-2 text-sm font-mono uppercase ${
+                isDuplicateSku
+                  ? 'border-red-500 bg-red-50 text-red-900'
+                  : 'border-slate-300'
+              }`}
             />
+            {/* Instant client-side duplicate warning */}
+            {isDuplicateSku && (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                SKU "{normalizedTypedSku}" already exists in your inventory.
+              </p>
+            )}
           </div>
 
           <div>
@@ -166,7 +223,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isDuplicateSku}
               className="bg-blue-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-800 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? 'Saving SKU...' : 'Create SKU'}

@@ -141,6 +141,7 @@ export const fulfillmentClient = {
     );
   },
 
+
   /* Creates a new order */
   createOrder(payload: CreateOrderPayload): Promise<RecentOrder> {
     return fetch(`${API_BASE}/orders`, {

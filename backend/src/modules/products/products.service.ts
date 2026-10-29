@@ -50,18 +50,51 @@ export class ProductsService {
     /*
     * Creates a new product and returns it with its price and low stock status.
     */
-    async create(dto: CreateProductDto) {
-        const existing = await this.prisma.product.findUnique({
-            where: { sku: dto.sku },
-        });
+    private async generateUniqueDatabaseSku(name: string): Promise<string> {
+        const prefix =
+          name
+            .replace(/[^a-zA-Z]/g, '')
+            .substring(0, 2)
+            .toUpperCase() || 'GN';
 
-        if (existing) {
-            throw new ConflictException(`Product with SKU "${dto.sku}" already exists`);
+        while (true) {
+            const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const candidateSku = `HW-${prefix}-${randomCode}`;
+
+            const existing = await this.prisma.product.findUnique({
+                where: { sku: candidateSku },
+            });
+
+            if (!existing) {
+                return candidateSku;
+            }
+        }
+    }
+
+    async create(dto: CreateProductDto) {
+        const providedSku = dto.sku?.trim().toUpperCase();
+        let finalSku: string;
+
+        if (providedSku) {
+            // 1. If a SKU was given, check for duplicates in PostgreSQL
+            const existing = await this.prisma.product.findUnique({
+                where: { sku: providedSku },
+            });
+
+            if (existing) {
+                throw new ConflictException(
+                  `Product with SKU "${providedSku}" already exists`,
+                );
+            }
+            finalSku = providedSku;
+        } else {
+            // 2. If no SKU was given, generate a guaranteed-unique random SKU
+            finalSku = await this.generateUniqueDatabaseSku(dto.name);
         }
 
         const product = await this.prisma.product.create({
             data: {
-                sku: dto.sku,
+                sku: finalSku,
                 name: dto.name,
                 price: dto.price,
                 stockQuantity: dto.stockQuantity,
