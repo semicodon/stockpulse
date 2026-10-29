@@ -8,6 +8,9 @@ import {PrismaService} from "../../prisma/prisma.service.js";
 import {CreateProductDto} from "./dto/create-product.dto.js";
 import {UpdateStockDto} from "./dto/update-stock.dto.js";
 
+const SKU_PREFIX_GENERAL = 'GN';
+const SKU_PREFIX_DEFAULT = 'HW'
+
 @Injectable()
 export class ProductsService {
 
@@ -50,16 +53,16 @@ export class ProductsService {
     /*
     * Creates a new product and returns it with its price and low stock status.
     */
-    private async generateUniqueDatabaseSku(name: string): Promise<string> {
+    private async generateUniqueProductSku(name: string): Promise<string> {
         const prefix =
           name
             .replace(/[^a-zA-Z]/g, '')
             .substring(0, 2)
-            .toUpperCase() || 'GN';
+            .toUpperCase() || `${SKU_PREFIX_GENERAL}`;
 
         while (true) {
             const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const candidateSku = `HW-${prefix}-${randomCode}`;
+            const candidateSku = `${SKU_PREFIX_DEFAULT}-${prefix}-${randomCode}`;
 
             const existing = await this.prisma.product.findUnique({
                 where: { sku: candidateSku },
@@ -89,7 +92,7 @@ export class ProductsService {
             finalSku = providedSku;
         } else {
             // 2. If no SKU was given, generate a guaranteed-unique random SKU
-            finalSku = await this.generateUniqueDatabaseSku(dto.name);
+            finalSku = await this.generateUniqueProductSku(dto.name);
         }
 
         const product = await this.prisma.product.create({

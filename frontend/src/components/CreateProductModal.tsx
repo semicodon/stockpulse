@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import type {CreateProductPayload, Product} from '../api/fulfillmentClient';
 
-const GENERAL_PRODUCT_PREFIX = 'GN';
-const FIXED_SKU_PREFIX = 'HW'
+const SKU_PREFIX_GENERAL = 'GN';
+const SKU_PREFIX_DEFAULT = 'HW'
 
 interface CreateProductModalProps {
   isOpen: boolean;
@@ -15,7 +15,8 @@ interface CreateProductModalProps {
   isSubmitting: boolean;
   errorMsg: string | null;
 }
-function generateUniqueSku(existingProducts: Product[], nameHint: string): string {
+function generateUniqueSku(existingProducts: Product[],
+                           nameHint: string): string {
   const existingSkus = new Set(
     existingProducts.map((p) => p.sku.toUpperCase()),
   );
@@ -24,13 +25,13 @@ function generateUniqueSku(existingProducts: Product[], nameHint: string): strin
   const cleanPrefix = nameHint
     .replace(/[^a-zA-Z]/g, '')
     .substring(0, 2)
-    .toUpperCase() || GENERAL_PRODUCT_PREFIX;
+    .toUpperCase() || SKU_PREFIX_GENERAL;
 
   let candidateSku = '';
   do {
     // Generates a 4-character alphanumeric code, e.g., "HW-MO-8F4K"
     const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    candidateSku = `${FIXED_SKU_PREFIX}-${cleanPrefix}-${randomCode}`;
+    candidateSku = `${SKU_PREFIX_DEFAULT}-${cleanPrefix}-${randomCode}`;
   } while (existingSkus.has(candidateSku));
 
   return candidateSku;
