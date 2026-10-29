@@ -1,16 +1,22 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  type CreateOrderPayload,
   fulfillmentClient,
+  type CreateOrderPayload,
+  type CreateProductPayload,
 } from '../api/fulfillmentClient';
 import { KpiHeader } from '../components/KpiHeader';
 import { InventoryTable } from '../components/InventoryTable';
 import { OrderFormModal } from '../components/OrderFormModal';
+import {CreateProductModal} from "../components/CreatePrductModal.tsx";
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Client UI state for the Create Product Modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [productErrorMsg, setProductErrorMsg] = useState<string | null>(null);
 
   const summaryQuery = useQuery({
     queryKey: ['operational-summary'],
@@ -54,6 +60,19 @@ export function DashboardPage() {
     }) => fulfillmentClient.updateProductStock(productId, stockQuantity),
     onSuccess: () => {
       refreshAllData();
+    },
+  });
+
+  // New Mutation for POST /api/products
+  const createProductMutation = useMutation({
+    mutationFn: (payload: CreateProductPayload) =>
+      fulfillmentClient.createProduct(payload),
+    onSuccess: () => {
+      setProductErrorMsg(null);
+      refreshAllData();
+    },
+    onError: (err: Error) => {
+      setProductErrorMsg(err.message);
     },
   });
 
@@ -127,9 +146,32 @@ export function DashboardPage() {
             restockMutation.mutate({ productId, stockQuantity })
           }
           isRestocking={restockMutation.isPending}
+          onOpenCreateModal={() => {
+            setProductErrorMsg(null);
+            setIsCreateModalOpen(true);
+          }}
         />
 
-        {/* 4. Recent Fulfilled Orders Feed */}
+        {/* 4. Create Product Modal (Resets & Closes ONLY on 201 Created) */}
+        <CreateProductModal
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            setProductErrorMsg(null);
+            setIsCreateModalOpen(false);
+          }}
+          onCreateProduct={(payload, onSuccessReset) => {
+            createProductMutation.mutate(payload, {
+              onSuccess: () => {
+                onSuccessReset();
+                setIsCreateModalOpen(false);
+              },
+            });
+          }}
+          isSubmitting={createProductMutation.isPending}
+          errorMsg={productErrorMsg}
+        />
+
+        {/* 5. Recent Fulfilled Orders Feed */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200">
             <h2 className="font-semibold text-slate-900">
